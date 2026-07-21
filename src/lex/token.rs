@@ -2,7 +2,8 @@
 
 pub enum Token{
     Atom(AtomKind),
-    Op(String)
+    Op(String),
+    EOF
 }
 #[derive(Debug, Clone, PartialEq)]
 

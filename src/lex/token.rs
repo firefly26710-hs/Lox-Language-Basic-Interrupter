@@ -1,9 +1,12 @@
+#[derive(Debug, Clone, PartialEq)]
+
 pub enum Token{
     Atom(AtomKind),
-    Operator(String)
+    Op(String)
 }
+#[derive(Debug, Clone, PartialEq)]
 
-enum AtomKind{
+pub enum AtomKind{
     Number(f64),
-    Bool(bool)
+    Variable(String)
 }

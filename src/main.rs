@@ -1,19 +1,32 @@
 pub mod lex;
 pub mod par;
 
-use crate::lex::lexer::Lexer;
-use crate::par::parser::parser_expression;
+use std::collections::HashMap;
+use std::io;
+use std::io::Write;
+use crate::par::expression::Expression;
 fn main() {
-    let input = "114514 * 17 - 26928";
-    let mut lexer = Lexer::new(&input);
-    lexer.scan_tokens();
-    lexer.print();
-    let mut tokens = lexer.tokens.into_iter().peekable();
-    let ast = parser_expression(&mut tokens, 0.0);
-    let result = ast.eval();
+    let mut variable: HashMap<String, f64> = HashMap::new();
+    loop{
+        print!(">> ");
+        io::stdout().flush().unwrap();
+        let input = {
+            let mut buf = String::new();
+            io::stdin().read_line(&mut buf).unwrap();
+            buf
+        };
+        
+        if input.trim() == "clear"{
+            break;
+        }
+        let expr = Expression::from_str(&input);
+        if let Some((var_name, lhs)) = expr.is_assign(){
+            let value = lhs.eval(&mut variable);
+            variable.insert(var_name, value);
+            continue;
+        }
+        let value = expr.eval(&mut variable);
+        println!("{}", value)
+    }
 
-    println!("-------------------");
-    println!("Input : {}", input);
-    println!("AST   : {:?}", ast);
-    println!("Result: {}", result);
 }

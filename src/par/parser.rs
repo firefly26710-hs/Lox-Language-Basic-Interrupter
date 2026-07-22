@@ -28,7 +28,7 @@ pub fn parser_expression(tokens: &mut Peekable<IntoIter<Token>>, min_bp : f32) -
                     _                            => panic!("bad token")
                 }
             }
-            None => panic!("Expected Operator")
+            None => break
         };
         let (l_bp, r_bp) = infix_blind_power(op);
         if l_bp < min_bp{

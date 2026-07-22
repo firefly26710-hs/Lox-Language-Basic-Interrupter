@@ -1,4 +1,4 @@
-use crate::lex::token::{AtomKind, Token};
+use crate::lex::token::{Token};
 use crate::lex::token::AtomKind::{Number, Variable};
 use crate::lex::token::Token::{Atom, Op, EOF};
 

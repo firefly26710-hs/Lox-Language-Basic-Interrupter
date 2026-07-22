@@ -1,46 +1,44 @@
-use crate::lex::lexer::Lexer;
-use crate::lex::token::{AtomKind, Token};
+use std::iter::Peekable;
+use std::vec::IntoIter;
+use crate::lex::token::{Token};
 use crate::lex::token::AtomKind::{Number, Variable};
 use crate::par::expression::Expression;
-
-struct Parser{
-    tokens   : Vec<Token>,
-    position : usize
-}
-
-impl Parser {
-    pub fn new(lexer: Lexer) -> Self {
-        Parser {
-            tokens: lexer.tokens,
-            position: 0
-        }
-    }
-
-    pub fn parser_expression(&mut self, min_bp : f32) -> Expression {
-        let mut lhs = match self.peek() {
-            Some(it) => {
-                match it {
-                    Token::Atom(Number(it)) => Expression::Atom(Number(*it)),
-                    Token::Atom(Variable(it)) => Expression::Atom(Variable(it.clone())),
-                    Token::Op('(') =>{
-                        let lhs = self.parser_expression(0.0);
-                        match lhs{
-                            
-                        }
-                    },
-                    _ => todo!()
+pub fn parser_expression(tokens: &mut Peekable<IntoIter<Token>>, min_bp : f32) -> Expression{
+    let mut lhs = match tokens.next(){
+        Some(it) => {
+            match it{
+                Token::Atom(Number(it)) => Expression::Atom(Number(it)),
+                Token::Atom(Variable(it)) => Expression::Atom(Variable(it.clone())),
+                Token::Op('(') =>{
+                    let lhs = parser_expression(tokens, 0.0);
+                    assert_eq!(tokens.next(), Some(Token::Op(')')) );
+                    lhs
+                },
+                _ => panic!("Expected Token for LHS")
+            }
+        },
+        None => panic!("No this Token")
+    };
+    loop{
+        let op = match tokens.peek(){
+            Some(op)=>{
+                match op{
+                    Token::EOF  | Token::Op(')') => break,
+                    Token::Op(op)        => *op,
+                    _                            => panic!("bad token")
                 }
-            },
-            None => panic!("Expected Token")
+            }
+            None => panic!("Expected Operator")
         };
-
-
-
+        let (l_bp, r_bp) = infix_blind_power(op);
+        if l_bp < min_bp{
+            break;
+        }
+        tokens.next();
+        let rhs = parser_expression(tokens, r_bp);
+        lhs = Expression::Op(op, vec![lhs, rhs])
     }
-
-    fn peek(&mut self) -> Option<&Token>{
-        self.tokens.get(self.position)
-    }
+    lhs
 }
 
 fn infix_blind_power(op : char) -> (f32, f32){

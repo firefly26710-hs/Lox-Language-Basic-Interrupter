@@ -16,7 +16,7 @@ impl SyntaxTree{
     }
 
     pub fn parser_expression(tokens: &mut Peekable<IntoIter<Token>>, min_bp : f32) -> Expression{
-        
+
 
 
 

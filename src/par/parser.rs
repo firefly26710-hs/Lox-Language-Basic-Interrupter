@@ -4,7 +4,7 @@ use crate::lex::token::{Token};
 use crate::par::node::Node;
 
 pub struct SyntaxTree{
-    pub(crate) syntax_tree: Vec<Node>
+    pub syntax_tree: Vec<Node>
 }
 
 impl SyntaxTree{
@@ -14,59 +14,32 @@ impl SyntaxTree{
         }
     }
 
-    pub fn parser_expression(&mut self, tokens: &mut Peekable<IntoIter<Token>>, min_bp : f32) -> usize{
-        let token =  tokens.next().expect("Expected LHS");
-        let mut lhs_index:usize = match token {
-            // Atom
-            Token::Atom(_) =>{
-                let node = Node::new(token, None, None);
-                self.syntax_tree.push(node);
+    pub fn parser_expression(&mut self,tokens : &mut Peekable<IntoIter<Token>>, min_bp : f32)->usize{
+        let lhs_index = match tokens.next().expect("Invalid Token in lhs") {
+            Token::Atom(atom_kind) => {
+                self.syntax_tree.push(Node::new(Token::Atom(atom_kind), None, None));
                 self.syntax_tree.len() - 1
             }
-            // unary
-            Token ::Op('-')=>{
-                let prefix_bp = 100.0;
-                let right_idx = self.parser_expression(tokens, prefix_bp);
 
-                let node = Node::new(token, None, Some(right_idx));
-                self.syntax_tree.push(node);
-                self.syntax_tree.len() - 1
-            }
-            // brackets
-            Token::Op('(')=>{
-                let inner_idx = self.parser_expression(tokens, 0.0);
-                assert_eq!(tokens.next(), Some(Token::Op(')')));
-                inner_idx
-            }
-            _ => panic!("Unexpected token: {:?}", token)
+            t => panic!("bad token!!{:?}", t)
         };
-        while let Some(next_token) = tokens.peek(){
-            if let Token::Op(op  ) = next_token{
-                let (l_bp, r_bp) = infix_blind_power(*op);
-
-                if l_bp < min_bp{
-                    break;
-                }
-
-                let op_token = tokens.next().unwrap();
-                let rhs_index = self.parser_expression(tokens, r_bp);
-
-                let node = Node::new(op_token, Some(lhs_index), Some(rhs_index));
-                self.syntax_tree.push(node);
-                lhs_index = self.syntax_tree.len() - 1;
-            }else{
+        loop {
+            let op = match tokens.peek().expect("Invalid Op"){
+                Token::EOF => break,
+                Token::Op(op) => op,
+                t => panic!("bad token!!{:?}", t),
+            };
+            tokens.next();
+            let (l_bp, r_bp) = infix_blind_power(*op);
+            if l_bp < min_bp{
                 break;
             }
+            let rhs_index = self.parser_expression(tokens, r_bp);
         }
         lhs_index
+
     }
-
-
-
 }
-
-
-
 
 
 fn infix_blind_power(op : char) -> (f32, f32){

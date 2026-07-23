@@ -9,8 +9,9 @@ fn main() {
     let mut lexer = Lexer::new(input);
     lexer.scan_tokens();
     println!("tokens {:?}", &lexer.tokens);
-    let mut syntax_tree = SyntaxTree::new();
-    syntax_tree.parser_expression(&mut lexer.tokens, 0, 0.0);
+    let mut syntax_tree = SyntaxTree::new(lexer.tokens);
+    syntax_tree.parser_expression(0.0);
     println!("Expression: {}", input);
-    println!("AST Arena: {:?}", syntax_tree.syntax_tree);
+    //dbg!(syntax_tree.nodes);
+    println!("AST Arena: {:?}", syntax_tree.nodes);
 }

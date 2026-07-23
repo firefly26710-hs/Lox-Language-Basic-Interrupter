@@ -1,42 +1,60 @@
-use crate::lex::token::{Token};
 use crate::par::node::Node;
+use crate::lex::token::{Token};
 
 pub struct SyntaxTree{
-    pub syntax_tree: Vec<Node>
+    pub nodes      : Vec<Node>,
+    tokens         : Vec<Token>,
+    current        : usize
 }
 
 impl SyntaxTree{
-    pub fn new()-> Self{
+    pub fn new(input_tokens: Vec<Token>)-> Self{
         SyntaxTree{
-            syntax_tree : Vec::new()
+            nodes   : Vec::new(),
+            tokens  : input_tokens,
+            current : 0
         }
     }
 
-    pub fn parser_expression(&mut self, tokens : &mut Vec<Token>, index: usize, min_bp : f32)->usize {
+    pub fn parser_expression(&mut self, min_bp : f32)->usize {
 
-        let lhs_index: usize = match tokens.get(index).expect("Invalid lhs") {
+        let token = self.advance().expect("Invalid lhs");
+
+        let lhs_index: usize = match token {
             Token::Atom(atom_kind) => {
-                self.syntax_tree.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
-                self.syntax_tree.len() - 1
+                self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
+                self.nodes.len() - 1
             }
-
-            t => panic!("bad token!!{:?}", t)
+            _ => panic!("Expected atom"),
         };
 
         loop {
-            let op = match tokens.get(index + 1).expect("Invalid Op") {
+            let op = match self.peek().expect("Invalid Op") {
                 Token::EOF => break,
                 Token::Op(op) => op.clone(),
                 t => panic!("bad token!!{:?}", t)
             };
+            self.advance();
             let (l_bp, r_bp) = infix_blind_power(op);
             if l_bp < min_bp {
                 break;
             }
-            let rhs_index: usize = self.parser_expression(tokens, index + 2, r_bp);
-            self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
+            let rhs_index: usize = self.parser_expression(r_bp);
+            self.nodes.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
         }
+
         lhs_index
+
+    }
+
+    fn advance(&mut self) -> Option<Token>{
+        let token = self.tokens.get(self.current).cloned();
+        self.current += 1;
+        token
+    }
+
+    fn peek(&self) -> Option<&Token>{
+        self.tokens.get(self.current)
     }
 
 
@@ -51,3 +69,4 @@ fn infix_blind_power(op : char) -> (f32, f32){
         _         => panic!("Unknown Operator{:?}", op)
     }
 }
+

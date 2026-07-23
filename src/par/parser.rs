@@ -1,5 +1,3 @@
-use std::iter::Peekable;
-use std::vec::IntoIter;
 use crate::lex::token::{Token};
 use crate::par::node::Node;
 
@@ -14,32 +12,29 @@ impl SyntaxTree{
         }
     }
 
-    pub fn parser_expression(&mut self,tokens : &mut Peekable<IntoIter<Token>>, min_bp : f32){
-        let lhs_index = match tokens.next().expect("Invalid Token in lhs") {
+    pub fn parser_expression(&mut self, mut tokens : &mut Vec<Token>, index: usize){
+        let lhs_index:usize = match tokens.get(index).expect("Invalid lhs"){
             Token::Atom(atom_kind) => {
-                self.syntax_tree.push(Node::new(Token::Atom(atom_kind), None, None));
+                self.syntax_tree.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.syntax_tree.len() - 1
             }
 
             t => panic!("bad token!!{:?}", t)
         };
 
-        let op = match tokens.next().expect("Invalid Op"){
-            Token::EOF => return,
-            Token::Op(op) => op,
-                t => panic!("bad token!!{:?}", t),
+        let op = match tokens.get(index + 1).expect("Invalid Op"){
+            Token::Op(op) => op.clone(),
+            t => panic!("bad token!!{:?}", t)
         };
-
-        let rhs_index = match tokens.next().expect("Invalid Token in lhs") {
+        let rhs_index:usize = match tokens.get(index + 2).expect("Invalid rhs"){
             Token::Atom(atom_kind) => {
-                self.syntax_tree.push(Node::new(Token::Atom(atom_kind), None, None));
-                self.syntax_tree.len() - 1 }
+                self.syntax_tree.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
+                self.syntax_tree.len() - 1
+            }
 
             t => panic!("bad token!!{:?}", t)
         };
-
-        self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)));
-
+        self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
     }
 
 

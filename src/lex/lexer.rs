@@ -31,7 +31,8 @@ impl Lexer {
     fn scan_token(&mut self) {
             let c = self.advance();
             match c {
-                '+' | '-' | '*' | '/' | '(' | ')' | '=' => self.tokens.push(Op(c)),
+                '+'|'-'|'*'|'/'|'('|')'|'=' => self.tokens.push(Op(c)),
+
                 'a'..='z' | 'A'..='Z' => self.variable(),
                 '0'..='9' => self.number(),
                 ' ' | '\r' |'\t'|'\n' => {}
@@ -49,7 +50,7 @@ impl Lexer {
         let string:String = self.input[self.start..self.current].iter().collect();
         let number = string.parse::<f64>();
         match number{
-            Ok(val) => self.tokens.push(Token::Atom(Number(val))),
+            Ok(val) => self.tokens.push(Atom(Number(val))),
             Err(_) => panic!("Invalid Number")
         }
     }
@@ -94,6 +95,7 @@ impl Lexer {
 fn is_digit( c : char) -> bool{
     c >= '0' && c <= '9'
 }
+fn is_letter( c : char ) -> bool{c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' }
 
 
 

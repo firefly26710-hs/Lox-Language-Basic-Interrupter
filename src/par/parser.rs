@@ -12,8 +12,9 @@ impl SyntaxTree{
         }
     }
 
-    pub fn parser_expression(&mut self, mut tokens : &mut Vec<Token>, index: usize){
-        let lhs_index:usize = match tokens.get(index).expect("Invalid lhs"){
+    pub fn parser_expression(&mut self, tokens : &mut Vec<Token>, index: usize, min_bp : f32)->usize {
+
+        let lhs_index: usize = match tokens.get(index).expect("Invalid lhs") {
             Token::Atom(atom_kind) => {
                 self.syntax_tree.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.syntax_tree.len() - 1
@@ -22,19 +23,20 @@ impl SyntaxTree{
             t => panic!("bad token!!{:?}", t)
         };
 
-        let op = match tokens.get(index + 1).expect("Invalid Op"){
-            Token::Op(op) => op.clone(),
-            t => panic!("bad token!!{:?}", t)
-        };
-        let rhs_index:usize = match tokens.get(index + 2).expect("Invalid rhs"){
-            Token::Atom(atom_kind) => {
-                self.syntax_tree.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
-                self.syntax_tree.len() - 1
+        loop {
+            let op = match tokens.get(index + 1).expect("Invalid Op") {
+                Token::EOF => break,
+                Token::Op(op) => op.clone(),
+                t => panic!("bad token!!{:?}", t)
+            };
+            let (l_bp, r_bp) = infix_blind_power(op);
+            if l_bp < min_bp {
+                break;
             }
-
-            t => panic!("bad token!!{:?}", t)
-        };
-        self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
+            let rhs_index: usize = self.parser_expression(tokens, index + 2, r_bp);
+            self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
+        }
+        lhs_index
     }
 
 

@@ -14,7 +14,7 @@ impl SyntaxTree{
         }
     }
 
-    pub fn parser_expression(&mut self,tokens : &mut Peekable<IntoIter<Token>>, min_bp : f32)->usize{
+    pub fn parser_expression(&mut self,tokens : &mut Peekable<IntoIter<Token>>, min_bp : f32){
         let lhs_index = match tokens.next().expect("Invalid Token in lhs") {
             Token::Atom(atom_kind) => {
                 self.syntax_tree.push(Node::new(Token::Atom(atom_kind), None, None));
@@ -23,22 +23,26 @@ impl SyntaxTree{
 
             t => panic!("bad token!!{:?}", t)
         };
-        loop {
-            let op = match tokens.peek().expect("Invalid Op"){
-                Token::EOF => break,
-                Token::Op(op) => op,
+
+        let op = match tokens.next().expect("Invalid Op"){
+            Token::EOF => return,
+            Token::Op(op) => op,
                 t => panic!("bad token!!{:?}", t),
-            };
-            tokens.next();
-            let (l_bp, r_bp) = infix_blind_power(*op);
-            if l_bp < min_bp{
-                break;
-            }
-            let rhs_index = self.parser_expression(tokens, r_bp);
-        }
-        lhs_index
+        };
+
+        let rhs_index = match tokens.next().expect("Invalid Token in lhs") {
+            Token::Atom(atom_kind) => {
+                self.syntax_tree.push(Node::new(Token::Atom(atom_kind), None, None));
+                self.syntax_tree.len() - 1 }
+
+            t => panic!("bad token!!{:?}", t)
+        };
+
+        self.syntax_tree.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)));
 
     }
+
+
 }
 
 

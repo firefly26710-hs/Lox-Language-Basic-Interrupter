@@ -25,12 +25,27 @@ impl SyntaxTree{
                 self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.nodes.len() - 1
             }
+            Token::Op('-') =>{
+                let rhs_index = self.parser_expression(1000.0);
+                self.nodes.push(Node::new(Token::Op('-'), None, Some(rhs_index)));
+                self.nodes.len() - 1
+            }
+            Token::Op('(') => {
+                let lhs_index = self.parser_expression(0.0);
+
+                match self.advance() {
+                    Some(Token::Op(')')) => lhs_index,
+                    _ => panic!("Expected  )"),
+                }
+            }
+
             _ => panic!("Expected atom"),
         };
 
         loop {
             let op = match self.peek().expect("Invalid Op") {
-                Token::EOF => break,
+                Token::EOF     => break,
+                Token::Op(')') => break,
                 Token::Op(op) => op.clone(),
                 t => panic!("bad token!!{:?}", t)
             };

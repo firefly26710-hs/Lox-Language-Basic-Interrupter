@@ -5,7 +5,7 @@ pub mod lex;
 pub mod par;
 
 fn main() {
-    let input = "1 + 1 + 1";
+    let input = "(-a + b) / c";
     let mut lexer = Lexer::new(input);
     lexer.scan_tokens();
     println!("tokens {:?}", &lexer.tokens);

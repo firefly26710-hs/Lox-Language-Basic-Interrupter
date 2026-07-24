@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 use crate::par::node::Node;
-use crate::lex::token::{Token};
+use crate::lex::token::{AtomKind, Token};
 
 pub struct SyntaxTree{
     pub nodes      : Vec<Node>,
@@ -80,7 +81,64 @@ impl SyntaxTree{
         }
     }
 
+    pub fn eval(&self, index: usize, var_table: &mut HashMap<String, f64>) -> f64 {
+        let node = &self.nodes[index];
+
+        match (node.left, node.right) {
+            (None, None) => {
+                match &node.token {
+                    Token::Atom(AtomKind::Number(val)) => *val,
+                    Token::Atom(AtomKind::Variable(name)) => {
+                        *var_table.get(name).expect(&format!("Undefined variable: {}", name))
+                    }
+                    _ => panic!("Expected atom"),
+                }
+            }
+
+            (None, Some(right_idx)) => {
+                let val = self.eval(right_idx, var_table);
+                match node.token {
+                    Token::Op('-') => -val,
+                    Token::Op('+') => val,
+                    _ => panic!("Invalid unary operator"),
+                }
+            }
+
+            (Some(left_idx), Some(right_idx)) => {
+                if let Token::Op('=') = node.token {
+                    let val = self.eval(right_idx, var_table);
+
+                    let var_name = match &self.nodes[left_idx].token {
+                        Token::Atom(AtomKind::Variable(name)) => name.clone(),
+                        _ => panic!("Left side of assignment must be a variable"),
+                    };
+
+                    var_table.insert(var_name, val);
+                    return val;
+                }
+
+                let left_val = self.eval(left_idx, var_table);
+                let right_val = self.eval(right_idx, var_table);
+                match node.token {
+                    Token::Op('+') => left_val + right_val,
+                    Token::Op('-') => left_val - right_val,
+                    Token::Op('*') => left_val * right_val,
+                    Token::Op('/') => left_val / right_val,
+                    _ => panic!("Invalid binary operator"),
+                }
+            }
+
+
+            _ => panic!("Invalid node structure"),
+        }
+    }
+
+
+
+
 }
+
+
 
 
 fn infix_blind_power(op : char) -> (f32, f32){

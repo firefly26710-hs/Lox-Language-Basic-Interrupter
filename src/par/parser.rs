@@ -20,7 +20,7 @@ impl SyntaxTree{
 
         let token = self.advance().expect("Invalid lhs");
 
-        let lhs_index: usize = match token {
+        let mut lhs_index: usize = match token {
             Token::Atom(atom_kind) => {
                 self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.nodes.len() - 1
@@ -34,13 +34,15 @@ impl SyntaxTree{
                 Token::Op(op) => op.clone(),
                 t => panic!("bad token!!{:?}", t)
             };
-            self.advance();
             let (l_bp, r_bp) = infix_blind_power(op);
             if l_bp < min_bp {
                 break;
             }
+            self.advance();
+
             let rhs_index: usize = self.parser_expression(r_bp);
-            self.nodes.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)))
+            self.nodes.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)));
+            lhs_index = self.nodes.len() - 1;
         }
 
         lhs_index
@@ -57,6 +59,11 @@ impl SyntaxTree{
         self.tokens.get(self.current)
     }
 
+    pub fn print(self){
+        for node in self.nodes{
+            println!("{:?}", node);
+        }
+    }
 
 }
 

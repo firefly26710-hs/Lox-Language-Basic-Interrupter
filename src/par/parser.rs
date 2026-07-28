@@ -85,6 +85,8 @@ impl SyntaxTree{
         let node = &self.nodes[index];
 
         match (node.left, node.right) {
+
+            //This is a variable
             (None, None) => {
                 match &node.token {
                     Token::Atom(AtomKind::Number(val)) => *val,
@@ -95,17 +97,21 @@ impl SyntaxTree{
                 }
             }
 
+            // This is an unary
             (None, Some(right_idx)) => {
                 let val = self.eval(right_idx, var_table);
-                match node.token {
+                let op = &node.token;
+                match op {
                     Token::Op('-') => -val,
                     Token::Op('+') => val,
                     _ => panic!("Invalid unary operator"),
                 }
             }
 
+            // This is a expression
             (Some(left_idx), Some(right_idx)) => {
-                if let Token::Op('=') = node.token {
+                let op = &node.token;
+                if *op == Token::Op('='){
                     let val = self.eval(right_idx, var_table);
 
                     let var_name = match &self.nodes[left_idx].token {

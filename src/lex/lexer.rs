@@ -49,7 +49,6 @@ impl Lexer {
         let string:String = self.input[self.start..self.current].iter().collect();
         let number = string.parse::<f64>();
         match number{
-            Ok(val) => self.tokens.push(Token::Atom(Number(val))),
             Err(_) => panic!("Invalid Number")
         }
     }

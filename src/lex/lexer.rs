@@ -1,5 +1,5 @@
 use crate::lex::token::{Token};
-use crate::lex::token::AtomKind::{Number, Variable};
+use crate::lex::token::AtomKind::{ Variable};
 use crate::lex::token::Token::{Atom, Op, EOF};
 
 #[derive(Debug, Clone, PartialEq)]

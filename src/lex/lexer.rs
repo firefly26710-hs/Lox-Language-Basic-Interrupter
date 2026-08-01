@@ -1,5 +1,5 @@
 use crate::lex::token::{Token};
-use crate::lex::token::AtomKind::{ Variable};
+use crate::lex::token::AtomKind::{Number, Variable};
 use crate::lex::token::Token::{Atom, Op, EOF};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,14 +29,15 @@ impl Lexer {
     }
 
     fn scan_token(&mut self) {
-            let c = self.advance();
-            match c {
-                '+' | '-' | '*' | '/' | '(' | ')' | '=' => self.tokens.push(Op(c)),
-                'a'..='z' | 'A'..='Z' => self.variable(),
-                '0'..='9' => self.number(),
-                ' ' | '\r' |'\t'|'\n' => {}
-                _ => panic!("No match this char"),
-            }
+        let c = self.advance();
+        match c {
+            '+'|'-'|'*'|'/'|'('|')'|'=' => self.tokens.push(Op(c)),
+
+            'a'..='z' | 'A'..='Z' => self.variable(),
+            '0'..='9' => self.number(),
+            ' ' | '\r' |'\t'|'\n' => {}
+            _ => panic!("No match this char"),
+        }
     }
 
 
@@ -49,6 +50,7 @@ impl Lexer {
         let string:String = self.input[self.start..self.current].iter().collect();
         let number = string.parse::<f64>();
         match number{
+            Ok(val) => self.tokens.push(Atom(Number(val))),
             Err(_) => panic!("Invalid Number")
         }
     }

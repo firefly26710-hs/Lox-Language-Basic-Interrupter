@@ -29,14 +29,5 @@ fn main() {
         let result = tree.eval(start_index, &mut var_table);
         tree.print();
         println!("Result : {}", result);
-
     }
-
-
-
-
-
-
-
-
 }

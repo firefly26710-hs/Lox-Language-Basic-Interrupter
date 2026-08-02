@@ -33,8 +33,8 @@ Experimental computer :
      
 Empirical micro-benchmarks executed using `Criterion` (100 samples per module). The measurements capture the complete end-to-end execution cost, including Linux kernel sys-calls, C-FFI overhead, and in-memory delta calculations:
 
-| Benchmark Target | Latency | Primary Operation & Bottleneck |
-| :--- | :--- | :--- |
+| Benchmark Target | Latency |
+| :--- | :--- |
 | **`"a = 5"`** | **`318.97 ns`** | 
 | **`"-1 + 1"`** | **`363.91 ns`** | 
 | **` "-(a + 5) -5"`** | **`716.90 ns`** |

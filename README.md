@@ -26,9 +26,8 @@
 Experimental computer :
 ####    OS: Ubuntu 24.04.4 LTS (Noble Numbat) x86_64
 ####    CPU: AMD Ryzen 5 2600 (12) @ 3.40 GHz
-####    GPU: NVIDIA GeForce GTX 1660 [Discrete]
 ####    Memory: 4.05 GiB / 15.56 GiB
-####    Disk (/): 66.96 GiB / 456.35 GiB (15%) - ext4
+
 
      
 Empirical micro-benchmarks executed via `Criterion` (100 statistical samples per expression). Measurements encapsulate the full execution pipeline—from raw string tokenization to AST node generation and operator precedence parsing:

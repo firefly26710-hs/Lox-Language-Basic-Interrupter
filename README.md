@@ -31,7 +31,7 @@ Experimental computer :
 ####    Disk (/): 66.96 GiB / 456.35 GiB (15%) - ext4
 
      
-Empirical micro-benchmarks executed using `Criterion` (100 samples per module). The measurements capture the complete end-to-end execution cost, including Linux kernel sys-calls, C-FFI overhead, and in-memory delta calculations:
+Empirical micro-benchmarks executed via `Criterion` (100 statistical samples per expression). Measurements encapsulate the full execution pipeline—from raw string tokenization to AST node generation and operator precedence parsing:
 
 | Benchmark Target | Latency |
 | :--- | :--- |

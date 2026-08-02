@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 
-// 請確認 src/lib.rs 有 pub mod lex; pub mod par;
-use cpl::lex::lexer::Lexer; // 根據你的實際名稱/路徑微調
+use cpl::lex::lexer::Lexer;
 use cpl::par::parser::SyntaxTree;
 
 fn bench_parser_expressions(c: &mut Criterion) {
@@ -19,11 +18,11 @@ fn bench_parser_expressions(c: &mut Criterion) {
     for (name, input) in inputs {
         group.bench_with_input(BenchmarkId::new("eval", name), input, |b, input_str| {
             b.iter(|| {
-                // 1. Lexing
+                // 1. Lexer
                 let mut lexer = Lexer::new(black_box(input_str));
                 lexer.scan_tokens();
 
-                // 2. Parsing
+                // 2. Parser
                 let mut tree = SyntaxTree::new(lexer.tokens);
                 tree.parser_expression(0.0);
 

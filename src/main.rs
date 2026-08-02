@@ -9,14 +9,15 @@ pub mod par;
 
 fn main() {
     let mut var_table:HashMap<String, f64> = HashMap::new();
+    let mut buf = String::with_capacity(64);
     loop{
         print!(">> ");
         io::stdout().flush().unwrap();
-        let input = {
-            let mut buf = String::new();
-            io::stdin().read_line(&mut buf).unwrap();
-            buf
-        };
+
+        buf.clear();
+        io::stdin().read_line(&mut buf).unwrap();
+        let input = &buf;
+
         if input.trim() == "exit"{
             break;
         }

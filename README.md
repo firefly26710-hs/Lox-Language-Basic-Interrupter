@@ -22,7 +22,7 @@
 <br>
 <br>
 
-## Telemetry Ingestion & Processing Pipeline
+## Lexer & Pratt Parser Frontend Performance
 Experimental computer :
 ####    OS: Ubuntu 24.04.4 LTS (Noble Numbat) x86_64
 ####    CPU: AMD Ryzen 5 2600 (12) @ 3.40 GHz

@@ -1,5 +1,5 @@
 ## Architecture
-![architecture](./photo/arch.png)
+![architecture](./photo/arch.svg)
 <br>
 <br>
 <br>

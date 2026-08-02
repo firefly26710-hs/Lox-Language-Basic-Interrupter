@@ -8,19 +8,13 @@
 ![source](./photo/source.png)
 
 ### Lexer : 
-#### 
+![lexer](./photo/lexer.png)
 
 ### Parser : 
-#### 
+![lexer](./photo/parser.png)
 
-### Eval :
-#### 
-
-### Result :
-#### 
-<br>
-<br>
-<br>
+### Eval & Result :
+![lexer](./photo/eval.png)
 
 ## Lexer & Pratt Parser Frontend Performance
 Experimental computer :

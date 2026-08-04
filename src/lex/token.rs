@@ -29,8 +29,9 @@ pub enum OpKind{
     RIGHTPAREN,
     LEFTBRACE,
     RIGHTBRACE,
-    COMMA,
     SEMICOLON,
+    COMMA,
+    DOT,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -24,7 +24,7 @@ fn bench_parser_expressions(c: &mut Criterion) {
 
                 // 2. Parser
                 let mut tree = SyntaxTree::new(lexer.tokens);
-                tree.parser_expression(0.0);
+                tree.parser_statment();
 
                 //3. Eval
                 let start_index = tree.nodes.len() - 1;

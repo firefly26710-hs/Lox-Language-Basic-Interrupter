@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use cpl::lex::token::OpKind;
+use crate::lex::token::Token::{KeyWord, Op};
+use crate::lex::token::KeyWordKind;
+use crate::lex::token::OpKind;
 use crate::par::node::Node;
 use crate::lex::token::{AtomKind, Token};
 
@@ -17,8 +19,16 @@ impl SyntaxTree{
             current : 0
         }
     }
+    pub fn parser_statment(&mut self){
+       let state = self.advance().expect("wtf dude");
+        match state{
+            KeyWord(KeyWordKind::LET) => self.variable_statment(),
+            _ => panic!("are you crazzy")
+        }
+    }
 
-    pub fn parser_expression(&mut self, min_bp : f32)->usize {
+
+    fn parser_expression(&mut self, min_bp : f32)->usize {
 
         let token = self.advance().expect("Invalid lhs");
 
@@ -27,16 +37,16 @@ impl SyntaxTree{
                 self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.nodes.len() - 1
             }
-            Token::Op(OpKind::MINUS) =>{
+            Op(OpKind::MINUS) =>{
                 let rhs_index = self.parser_expression(1000.0);
-                self.nodes.push(Node::new(Token::Op(OpKind::MINUS), None, Some(rhs_index)));
+                self.nodes.push(Node::new(Op(OpKind::MINUS), None, Some(rhs_index)));
                 self.nodes.len() - 1
             }
-            Token::Op('(') => {
+            Op(OpKind::LEFTPAREN) => {
                 let lhs_index = self.parser_expression(0.0);
 
                 match self.advance() {
-                    Some(Token::Op(')')) => lhs_index,
+                    Some(Op(OpKind::RIGHTPAREN)) => lhs_index,
                     _ => panic!("Expected  )"),
                 }
             }
@@ -47,25 +57,41 @@ impl SyntaxTree{
         loop {
             let op = match self.peek().expect("Invalid Op") {
                 Token::EOF     => break,
-                Token::Op(')') => break,
-                Token::Op(op) => op.clone(),
+                Op(OpKind::RIGHTPAREN) => break,
+                Op(op) => op.clone(),
                 t => panic!("bad token!!{:?}", t)
             };
-            let (l_bp, r_bp) = infix_blind_power(op);
+            let (l_bp, r_bp) = infix_blind_power(op.clone());
             if l_bp < min_bp {
                 break;
             }
             self.advance();
 
             let rhs_index: usize = self.parser_expression(r_bp);
-            self.nodes.push(Node::new(Token::Op(op), Some(lhs_index), Some(rhs_index)));
+            self.nodes.push(Node::new(Op(op.clone()), Some(lhs_index), Some(rhs_index)));
             lhs_index = self.nodes.len() - 1;
         }
 
         lhs_index
 
     }
+    fn variable_statment(&mut self){
+        let var_token = self.advance().expect("are you kidding me in var");
+        let lhs_index = {
+            self.nodes.push(Node::new(var_token, None, None));
+            self.nodes.len() - 1
+        };
 
+        let eq_token = if matches!(self.peek(), Some(Op(OpKind::EQUEL))) {
+            self.advance().expect("are you kidding me in eq")
+        } else {
+            panic!("wtf, this is not a eq")
+        };
+
+        let rhs_index = self.parser_expression(0.0);
+
+        self.nodes.push(Node::new(eq_token, Some(lhs_index), Some(rhs_index)));
+    }
     fn advance(&mut self) -> Option<Token>{
         let token = self.tokens.get(self.current).cloned();
         self.current += 1;
@@ -103,8 +129,8 @@ impl SyntaxTree{
                 let val = self.eval(right_idx, var_table);
                 let op = &node.token;
                 match op {
-                    Token::Op('-') => -val,
-                    Token::Op('+') => val,
+                    Op(OpKind::MINUS) => -val,
+                    Op(OpKind::PLUS) => val,
                     _ => panic!("Invalid unary operator"),
                 }
             }
@@ -112,7 +138,7 @@ impl SyntaxTree{
             // This is a expression
             (Some(left_idx), Some(right_idx)) => {
                 let op = &node.token;
-                if *op == Token::Op('='){
+                if *op == Op(OpKind::EQUEL){
                     let val = self.eval(right_idx, var_table);
 
                     let var_name = match &self.nodes[left_idx].token {
@@ -127,10 +153,10 @@ impl SyntaxTree{
                 let left_val = self.eval(left_idx, var_table);
                 let right_val = self.eval(right_idx, var_table);
                 match node.token {
-                    Token::Op('+') => left_val + right_val,
-                    Token::Op('-') => left_val - right_val,
-                    Token::Op('*') => left_val * right_val,
-                    Token::Op('/') => left_val / right_val,
+                    Op(OpKind::PLUS) => left_val + right_val,
+                    Op(OpKind::MINUS) => left_val - right_val,
+                    Op(OpKind::MULTI) => left_val * right_val,
+                    Op(OpKind::DIVIDE) => left_val / right_val,
                     _ => panic!("Invalid binary operator"),
                 }
             }
@@ -148,11 +174,11 @@ impl SyntaxTree{
 
 
 
-fn infix_blind_power(op : char) -> (f32, f32){
+fn infix_blind_power(op : OpKind) -> (f32, f32){
     match op{
-        '='       => (0.1, 0.2),
-        '+' | '-' => (1.0, 1.1),
-        '*' | '/' => (2.0, 2.1),
+        OpKind::EQUEL                  => (0.1, 0.2),
+        OpKind::PLUS  | OpKind::MINUS  => (1.0, 1.1),
+        OpKind::MULTI | OpKind::DIVIDE => (2.0, 2.1),
         _         => panic!("Unknown Operator{:?}", op)
     }
 }

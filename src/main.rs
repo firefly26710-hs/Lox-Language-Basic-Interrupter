@@ -25,7 +25,7 @@ fn main() {
         lexer.scan_tokens();
         println!("tokens {:?}", &lexer.tokens);
         let mut tree = SyntaxTree::new(lexer.tokens);
-        tree.parser_expression(0.0);
+        tree.parser_statment();
         let start_index = tree.nodes.len() - 1;
         let result = tree.eval(start_index, &mut var_table);
         tree.print();

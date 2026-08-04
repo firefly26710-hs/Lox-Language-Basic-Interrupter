@@ -1,5 +1,8 @@
+use crate::lex::token::KeyWordKind;
+use crate::lex::token::Token::KeyWord;
+use crate::lex::token::{OpKind};
 use crate::lex::token::{Token};
-use crate::lex::token::AtomKind::{Number, Variable};
+use crate::lex::token::AtomKind::{Number, Idenitifer};
 use crate::lex::token::Token::{Atom, Op, EOF};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,9 +34,37 @@ impl Lexer {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '+'|'-'|'*'|'/'|'('|')'|'=' => self.tokens.push(Op(c)),
+            '+' => self.tokens.push(Op(OpKind::PLUS)),
+            '-' => self.tokens.push(Op(OpKind::MINUS)),
+            '*' => self.tokens.push(Op(OpKind::MULTI)),
+            '/' => self.tokens.push(Op(OpKind::DIVIDE)),
+            '=' =>{
+                if matches!(self.peek(),'=') {
+                    self.tokens.push(Op(OpKind::EQUELEQUEL));
+                    self.current += 1
+                }
+                self.tokens.push(Op(OpKind::EQUEL))
+            },
+            '>' => {
+                if matches!(self.peek(),'=') {
+                    self.tokens.push(Op(OpKind::GREATEREUQEL));
+                    self.current += 1
+                }
+                self.tokens.push(Op(OpKind::GREATER))
+            },
+            '<' => {
+                if matches!(self.peek(),'=') {
+                    self.tokens.push(Op(OpKind::LESSEREQUEL));
+                    self.current += 1
+                }
+                self.tokens.push(Op(OpKind::LESSER))
+            },
+            '(' => self.tokens.push(Op(OpKind::LEFTPAREN)),
+            ')' => self.tokens.push(Op(OpKind::RIGHTPAREN)),
+            '{' => self.tokens.push(Op(OpKind::LEFTBRACE)),
+            '}' => self.tokens.push(Op(OpKind::RIGHTBRACE)),
 
-            'a'..='z' | 'A'..='Z' => self.variable(),
+            'a'..='z' | 'A'..='Z' => self.identifier(),
             '0'..='9' => self.number(),
             ' ' | '\r' |'\t'|'\n' => {}
             _ => panic!("No match this char"),
@@ -47,8 +78,8 @@ impl Lexer {
             self.current += 1;
             while is_digit(self.peek()){ self.current += 1}
         }
-        let string:String = self.input[self.start..self.current].iter().collect();
-        let number = string.parse::<f64>();
+        let slice:String = self.input[self.start..self.current].iter().collect();
+        let number = slice.parse::<f64>();
         match number{
             Ok(val) => self.tokens.push(Atom(Number(val))),
             Err(_) => panic!("Invalid Number")
@@ -62,10 +93,28 @@ impl Lexer {
     }
 
 
-    fn variable(&mut self) {
+    fn identifier(&mut self) {
         while self.peek().is_alphanumeric() || self.peek() == '_'{ self.current += 1 }
-        let variable:String = self.input[self.start..self.current].iter().collect();
-        self.tokens.push(Atom(Variable(variable)))
+        
+        let slice:String = self.input[self.start..self.current].iter().collect();
+        match slice.as_str(){
+            "let" => self.tokens.push(KeyWord(KeyWordKind::LET)),
+            "fun" => self.tokens.push(KeyWord(KeyWordKind::FUN)),
+            "for" => self.tokens.push(KeyWord(KeyWordKind::FOR)),
+            "while" => self.tokens.push(KeyWord(KeyWordKind::WHILE)),
+            "if" => self.tokens.push(KeyWord(KeyWordKind::IF)),
+            "else" => self.tokens.push(KeyWord(KeyWordKind::ELSE)),
+            "and" => self.tokens.push(KeyWord(KeyWordKind::AND)),
+            "or" => self.tokens.push(KeyWord(KeyWordKind::OR)),
+            "true" => self.tokens.push(KeyWord(KeyWordKind::TRUE)),
+            "false" => self.tokens.push(KeyWord(KeyWordKind::FALSE)),
+            "null" => self.tokens.push(KeyWord(KeyWordKind::NULL)),
+            "struct" => self.tokens.push(KeyWord(KeyWordKind::LET)),
+            "print" => self.tokens.push(KeyWord(KeyWordKind::PRINT)),
+            "return" => self.tokens.push(KeyWord(KeyWordKind::RETURN)),
+            _ => self.tokens.push(Atom(Idenitifer(slice)))
+        }
+
     }
 
 

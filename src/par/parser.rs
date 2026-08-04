@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use cpl::lex::token::OpKind;
 use crate::par::node::Node;
 use crate::lex::token::{AtomKind, Token};
 
@@ -26,9 +27,9 @@ impl SyntaxTree{
                 self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
                 self.nodes.len() - 1
             }
-            Token::Op('-') =>{
+            Token::Op(OpKind::MINUS) =>{
                 let rhs_index = self.parser_expression(1000.0);
-                self.nodes.push(Node::new(Token::Op('-'), None, Some(rhs_index)));
+                self.nodes.push(Node::new(Token::Op(OpKind::MINUS), None, Some(rhs_index)));
                 self.nodes.len() - 1
             }
             Token::Op('(') => {
@@ -90,7 +91,7 @@ impl SyntaxTree{
             (None, None) => {
                 match &node.token {
                     Token::Atom(AtomKind::Number(val)) => *val,
-                    Token::Atom(AtomKind::Variable(name)) => {
+                    Token::Atom(AtomKind::Idenitifer(name)) => {
                         *var_table.get(name).expect(&format!("Undefined variable: {}", name))
                     }
                     _ => panic!("Expected atom"),
@@ -115,7 +116,7 @@ impl SyntaxTree{
                     let val = self.eval(right_idx, var_table);
 
                     let var_name = match &self.nodes[left_idx].token {
-                        Token::Atom(AtomKind::Variable(name)) => name.clone(),
+                        Token::Atom(AtomKind::Idenitifer(name)) => name.clone(),
                         _ => panic!("Left side of assignment must be a variable"),
                     };
 

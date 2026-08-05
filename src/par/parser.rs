@@ -5,38 +5,38 @@ use crate::lex::token::OpKind;
 use crate::par::node::Node;
 use crate::lex::token::{AtomKind, Token};
 
-pub struct SyntaxTree{
+pub struct Parser{
     pub nodes      : Vec<Node>,
     tokens         : Vec<Token>,
     current        : usize
 }
 
-impl SyntaxTree{
+impl Parser{
     pub fn new(input_tokens: Vec<Token>)-> Self{
-        SyntaxTree{
+        Parser{
             nodes   : Vec::new(),
             tokens  : input_tokens,
             current : 0
         }
     }
-    pub fn parser_statment(&mut self){
-       let state = self.advance().expect("wtf dude");
+    pub fn parser_statment(&mut self)->usize{
+       let state = self.peek().expect("wtf dude");
         match state{
             KeyWord(KeyWordKind::LET) => self.variable_statment(),
 	    KeyWord(KeyWordKind::IF)  => self.if_statment(),
+	    KeyWord(KeyWordKind::ELSE) => self.else_statment(),
 	    KeyWord(KeyWordKind::WHILE) => self.while_statment(),
 	    KeyWord(KeyWordKind::FOR)   => self.for_statment(),
 	    KeyWord(KeyWordKind::FUN) => self.function_statment(),
 	    
             _ => panic!("are you crazzy")
-        }
+        };
+	self.nodes.len() - 1
     }
 
 
-    fn parser_expression(&mut self, min_bp : f32)->usize {
-	
+    fn parser_expression(&mut self, min_bp : f32)->usize {	
         let token = self.advance().expect("Invalid lhs");
-
         let mut lhs_index: usize = match token {
             Token::Atom(atom_kind) => {
                 self.nodes.push(Node::new(Token::Atom(atom_kind.clone()), None, None));
@@ -49,13 +49,11 @@ impl SyntaxTree{
             }
             Op(OpKind::LEFTPAREN) => {
                 let lhs_index = self.parser_expression(0.0);
-
                 match self.advance() {
                     Some(Op(OpKind::RIGHTPAREN)) => lhs_index,
                     _ => panic!("Expected  )"),
                 }
             }
-
             _ => panic!("Expected atom"),
         };
 
@@ -63,6 +61,8 @@ impl SyntaxTree{
             let op = match self.peek().expect("Invalid Op") {
                 Token::EOF     => break,
                 Op(OpKind::RIGHTPAREN) => break,
+		Op(OpKind::RIGHTBRACE) => break,
+		Op(OpKind::SEMICOLON) => break,
                 Op(op) => op.clone(),
                 t => panic!("bad token!!{:?}", t)
             };
@@ -70,8 +70,6 @@ impl SyntaxTree{
             if l_bp < min_bp {
                 break;
             }
-            self.advance();
-
             let rhs_index: usize = self.parser_expression(r_bp);
             self.nodes.push(Node::new(Op(op.clone()), Some(lhs_index), Some(rhs_index)));
             lhs_index = self.nodes.len() - 1;
@@ -92,84 +90,94 @@ impl SyntaxTree{
 
     
     
-    fn variable_statment(&mut self){
+    fn variable_statment(&mut self) -> usize{
+	
+	let let_token = match self.peek().expect("a"){
+	    KeyWord(KeyWordKind::LET) => self.advance().expect("a"),
+	    _ => panic!("This is not let token")
+	};
+	
         let var_token = self.advance().expect("are you kidding me in var");
         let lhs_index = {
             self.nodes.push(Node::new(var_token, None, None));
             self.nodes.len() - 1
         };
 
-        let eq_token = if matches!(self.peek(), Some(Op(OpKind::EQUEL))) {
+        if matches!(self.peek(), Some(Op(OpKind::EQUEL))) {
             self.advance().expect("are you kidding me in eq")
         } else {
-            panic!("wtf, this is not a eq")
+            panic!("wtf, this is not the equel token")
         };
 
         let rhs_index = self.parser_expression(0.0);
+	match self.peek() {
+            Some(Op(OpKind::SEMICOLON)) => { self.advance(); },
+            _ => panic!("Expected ';' at the end of statement"),
+        };
 
-        self.nodes.push(Node::new(eq_token, Some(lhs_index), Some(rhs_index)));
+
+        self.nodes.push(Node::new(let_token, Some(lhs_index), Some(rhs_index)));
+	self.nodes.len() - 1
     }
 
 
     // > >= < <= == != 
-    // if x > 0 { b = 2 } else { b = 3 }
-    fn if_statment(&mut self){
-        let left_token = self.advance().expect("are you kidding me in left var");
-	let left_index = {
-	    self.nodes.push(Node::new(left_token, None, None));
-            self.node.len() - 1
-	}
-	let op_token = self.peek().expected("wtf dude");
-	match op_token{
-	         Op(OpKind::GREATER)    | Op(OpKind::GREATEREQUEL)
+    // if x > 0 {let b = 2 }
+    fn if_statment(&mut self) -> usize{
+	let if_token = match self.peek().expect("a"){
+	    KeyWord(KeyWordKind::IF) => self.advance(),
+	    
+	    _ =>  panic!("wtf, this is not the if token")
+	};
+
+	
+	let condition_index = self.condition();
+	
+	match self.peek().expect("are you kidding me in left brace"){
+	    Op(OpKind::LEFTBRACE) => self.advance(),
+	    _ => panic!("wtf, this is not a left brace")
+	};
+	let inner_statment_index = self.parser_statment();
+	
+        match self.peek().expect("are you kidding me in left brace"){
+	    Op(OpKind::RIGHTBRACE) => self.advance(),
+	    _ => panic!("wtf, this is not a right brace")
+	};
+	self.nodes.push(Node::new(KeyWord(KeyWordKind::IF).clone(),Some(condition_index), Some(inner_statment_index)));
+	self.nodes.len() - 1
+    }
+
+    fn else_statment(&mut self)-> usize{1}
+    fn for_statment(&mut self)-> usize{1}
+    fn while_statment(&mut self)-> usize{1}
+    fn function_statment(&mut self)->usize{1}
+    
+    fn condition(&mut self) -> usize{
+	let lhs_token = self.advance().expect("are you kidding me in left var");
+	let lhs_index = {
+	    self.nodes.push(Node::new(lhs_token, None, None));
+            self.nodes.len() - 1
+	};
+	let op_token = match self.peek().expect("wtf dude"){
+	         Op(OpKind::GREATER)    | Op(OpKind::GREATEREUQEL)
 		|Op(OpKind::LESSER)     | Op(OpKind::LESSEREQUEL)
 		|Op(OpKind::EQUELEQUEL) | Op(OpKind::NOTEQUEL)
-		=> self.advance(),//pass
+		=> self.advance().expect("cool"),//pass
 
 	        _ => panic!("no this condiction operator")
-	}
+	};
 
-        let right_token = self.advance().expected("are you kidding me in right var");
-	let right_index = {
-	    self.nodes.push(Node::new(right_token, None, None));
-	    self.node.len() - 1;
-	}
-	self.nodes.push(Node::new(eq_token, Some(lhs_index), Some(rhs_index)));
-
+        let rhs_token = self.advance().expect("are you kidding me in right var");
+	let rhs_index = {
+	    self.nodes.push(Node::new(rhs_token, None, None));
+	    self.nodes.len() - 1
+	};
 	
-	
-
-
+	self.nodes.push(Node::new(op_token.clone(), Some(lhs_index), Some(rhs_index)));
+	self.nodes.len() - 1
     }
-    fn for_statment(&mut self){}
-    fn while_statment(&mut self){}
-    fn function_statment(&mut self){}
 
     
-    fn condiction(&self){
-	 let left_token = self.advance().expect("are you kidding me in left var");
-	let left_index = {
-	    self.nodes.push(Node::new(left_token, None, None));
-            self.node.len() - 1
-	}
-	let op_token = self.peek().expected("wtf dude");
-	match op_token{
-	         Op(OpKind::GREATER)    | Op(OpKind::GREATEREQUEL)
-		|Op(OpKind::LESSER)     | Op(OpKind::LESSEREQUEL)
-		|Op(OpKind::EQUELEQUEL) | Op(OpKind::NOTEQUEL)
-		=> self.advance(),//pass
-
-	        _ => panic!("no this condiction operator")
-	}
-
-        let right_token = self.advance().expected("are you kidding me in right var");
-	let right_index = {
-	    self.nodes.push(Node::new(right_token, None, None));
-	    self.node.len() - 1;
-	}
-	self.nodes.push(Node::new(eq_token, Some(lhs_index), Some(rhs_index)));
-
-    }
 
 
     

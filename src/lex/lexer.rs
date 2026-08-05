@@ -28,13 +28,6 @@ impl Lexer {
             self.start = self.current;
             self.scan_token()
         }
-        let last = self.tokens.last().expect("Empty tokens");
-        match last {
-            Op(OpKind::SEMICOLON) => {},
-            Op(OpKind::RIGHTPAREN) | Op(OpKind::RIGHTBRACE) | Atom(Number(_)) | Atom(Idenitifer(_))
-            => self.tokens.push(Op(OpKind::SEMICOLON)),
-            _ => {}
-        }
         self.tokens.push(EOF);
     }
 

@@ -1,10 +1,14 @@
 use crate::lex::token::Token;
 
+
+
+
+
 #[derive(Debug)]
 pub struct Node{
-    pub token : Token,
+    pub token  : Token,
     pub left  : Option<usize>,
-    pub right : Option<usize>
+    pub right : Option<usize>,
 }
 
 impl Node{

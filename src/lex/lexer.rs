@@ -110,7 +110,7 @@ impl Lexer {
             "struct" => self.tokens.push(Token::STRUCT),
             "print" => self.tokens.push(Token::PRINT),
             "return" => self.tokens.push(Token::RETURN),
-            _ => self.tokens.push(Token::Idenitifer(slice))
+            _ => self.tokens.push(Token::Identifier(slice))
         }
     }
 

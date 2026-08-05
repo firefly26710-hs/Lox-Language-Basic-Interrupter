@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lex::token::Token;
-use crate::par::node::Node;
+use crate::par::node::{Node, NodeKind};
 
 pub struct Parser{
     pub nodes      : Vec<Node>,
@@ -32,16 +32,16 @@ impl Parser{
     }
 
 
-    fn parser_expression(&mut self, min_bp : f32)->usize {	
+    fn parser_expression(&mut self, min_bp : f32)->usize{	
         let number_token = self.advance().expect("Invalid lhs");
         let mut lhs_index: usize = match number_token {
-            Token::Number(_) => {
-                self.nodes.push(Node::new(number_token.clone(), None, None));
+            Token::Number(_) | Token::Identifier(_) => {
+                self.nodes.push(Node::leaf(number_token.clone()));
                 self.nodes.len() - 1
             }
             Token::MINUS =>{
                 let rhs_index = self.parser_expression(1000.0);
-                self.nodes.push(Node::new(Token::MINUS, None, Some(rhs_index)));
+                self.nodes.push(Node::binary(Token::MINUS, None, Some(rhs_index)));
                 self.nodes.len() - 1
             }
             Token::LEFTPAREN => {
@@ -66,7 +66,7 @@ impl Parser{
                 break;
             }
             let rhs_index: usize = self.parser_expression(r_bp);
-            self.nodes.push(Node::new(op_token.clone(), Some(lhs_index), Some(rhs_index)));
+            self.nodes.push(Node::binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
             lhs_index = self.nodes.len() - 1;
         }
 
@@ -74,16 +74,6 @@ impl Parser{
 
     }
 
-    
-
-
-
-
-    
-
-
-
-    
     
     fn variable_statment(&mut self) -> usize{
 	
@@ -94,15 +84,15 @@ impl Parser{
 	
         let var_token = self.advance().expect("are you kidding me in var");
         let lhs_index = {
-            self.nodes.push(Node::new(var_token, None, None));
+            self.nodes.push(Node::leaf(var_token));
             self.nodes.len() - 1
         };
 
         if matches!(self.peek(), Some(Token::EQUEL)) {
-            self.advance().expect("are you kidding me in eq")
-        } else {
-            panic!("wtf, this is not the equel token")
-        };
+            self.advance().expect("are you kidding me in eq");
+        }else {
+            panic!("wtf, this is not the equel token");
+        }
 
         let rhs_index = self.parser_expression(0.0);
 	match self.peek() {
@@ -111,10 +101,10 @@ impl Parser{
         };
 
 
-        self.nodes.push(Node::new(let_token, Some(lhs_index), Some(rhs_index)));
+        self.nodes.push(Node::binary(let_token, Some(lhs_index), Some(rhs_index)));
 	self.nodes.len() - 1
-	}
-
+    }
+    
 
     // > >= < <= == != 
     // if x > 0 {let b = 2 }
@@ -138,19 +128,19 @@ impl Parser{
 	    Token::RIGHTBRACE => self.advance(),
 	    _ => panic!("wtf, this is not a right brace")
 	};
-	self.nodes.push(Node::new(if_token, Some(condition_index), Some(inner_statment_index)));
+	self.nodes.push(Node::binary(if_token, Some(condition_index), Some(inner_statment_index)));
 	self.nodes.len() - 1
     }
 
-    fn else_statment(&mut self)-> usize{1}
-    fn for_statment(&mut self)-> usize{1}
-    fn while_statment(&mut self)-> usize{1}
+    fn else_statment(&mut self)    -> usize{1}
+    fn for_statment(&mut self)     -> usize{1}
+    fn while_statment(&mut self)   -> usize{1}
     fn function_statment(&mut self)->usize{1}
     
     fn condition(&mut self) -> usize{
 	let lhs_token = self.advance().expect("are you kidding me in left var");
 	let lhs_index = {
-	    self.nodes.push(Node::new(lhs_token, None, None));
+	    self.nodes.push(Node::leaf(lhs_token));
             self.nodes.len() - 1
 	};
 	let op_token = match self.peek().expect("wtf dude"){
@@ -164,11 +154,11 @@ impl Parser{
 
         let rhs_token = self.advance().expect("are you kidding me in right var");
 	let rhs_index = {
-	    self.nodes.push(Node::new(rhs_token, None, None));
+	    self.nodes.push(Node::leaf(rhs_token));
 	    self.nodes.len() - 1
 	};
 	
-	self.nodes.push(Node::new(op_token.clone(), Some(lhs_index), Some(rhs_index)));
+	self.nodes.push(Node::binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
 	self.nodes.len() - 1
     }
 
@@ -192,66 +182,64 @@ impl Parser{
         }
     }
 
-    pub fn eval(&self, index: usize, var_table: &mut HashMap<String, f64>) -> f64 {
+   pub fn eval(&self, index: usize, var_table: &mut HashMap<String, f64>) -> f64 {
         let node = &self.nodes[index];
 
-        match (node.left, node.right) {
+        match &node.kind {
+            NodeKind::BinaryNode { token, left, right } => {
+                let left_opt = left.map(|x| x as usize);
+                let right_opt = right.map(|x| x as usize);
 
-            //This is a variable
-            (None, None) => {
-                match &node.token {
-                    Token::Number(val) => *val,
-                    Token::Idenitifer(name) => {
-                        *var_table.get(name).expect(&format!("Undefined variable: {}", name))
+                match (left_opt, right_opt) {
+                    (None, None) => match token {
+                        Token::Number(val) => *val,
+                        Token::Identifier(name) => {
+                            *var_table.get(name).expect(&format!("Undefined variable: {}", name))
+                        }
+                        _ => panic!("Expected atom"),
+                    },
+                    (None, Some(right_idx)) => {
+                        let val = self.eval(right_idx, var_table);
+                        match token {
+                            Token::MINUS => -val,
+                            Token::PLUS => val,
+                            _ => panic!("Invalid unary operator"),
+                        }
                     }
-                    _ => panic!("Expected atom"),
+                    (Some(left_idx), Some(right_idx)) => {
+                        if token == &Token::EQUEL {
+                            let val = self.eval(right_idx, var_table);
+
+                            let var_name = match &self.nodes[left_idx].kind {
+                                NodeKind::BinaryNode {
+                                    token: Token::Identifier(name),
+                                    ..
+                                } => name.clone(),
+                                _ => panic!("Left side of assignment must be a variable"),
+                            };
+
+                            var_table.insert(var_name, val);
+                            return val;
+                        }
+
+                        let left_val = self.eval(left_idx, var_table);
+                        let right_val = self.eval(right_idx, var_table);
+                        match token {
+                            Token::PLUS => left_val + right_val,
+                            Token::MINUS => left_val - right_val,
+                            Token::MULTI => left_val * right_val,
+                            Token::DIVIDE => left_val / right_val,
+                            _ => panic!("Invalid binary operator"),
+                        }
+			
+                    }
+                    _ => panic!("Invalid node structure")
                 }
-            }
-
-            // This is an unary
-            (None, Some(right_idx)) => {
-                let val = self.eval(right_idx, var_table);
-                let op = &node.token;
-                match op {
-                    Token::MINUS => -val,
-                    Token::PLUS => val,
-                    _ => panic!("Invalid unary operator"),
-                }
-            }
-
-            // This is a expression
-            (Some(left_idx), Some(right_idx)) => {
-                let op = &node.token;
-                if *op == Token::EQUEL{
-                    let val = self.eval(right_idx, var_table);
-
-                    let var_name = match &self.nodes[left_idx].token {
-                        Token::Idenitifer(name) => name.clone(),
-                        _ => panic!("Left side of assignment must be a variable"),
-                    };
-
-                    var_table.insert(var_name, val);
-                    return val;
-                }
-
-                let left_val = self.eval(left_idx, var_table);
-                let right_val = self.eval(right_idx, var_table);
-                match node.token {
-                    Token::PLUS => left_val + right_val,
-                    Token::MINUS => left_val - right_val,
-                    Token::MULTI => left_val * right_val,
-                    Token::DIVIDE => left_val / right_val,
-                    _ => panic!("Invalid binary operator"),
-                }
-            }
-
-
-            _ => panic!("Invalid node structure"),
+            },
+	    &NodeKind::BranchTable { .. } => todo!()
+	    
         }
-    }
-
-
-
+   }
 
 }
 

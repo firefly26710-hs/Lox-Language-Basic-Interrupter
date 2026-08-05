@@ -4,7 +4,7 @@ pub enum Token{
     
     // Atom
     Number(f64),
-    Idenitifer(String),
+    Identifier(String),
 
     
     

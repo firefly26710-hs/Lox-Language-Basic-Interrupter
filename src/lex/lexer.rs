@@ -1,9 +1,5 @@
-use crate::lex::token::KeyWordKind;
-use crate::lex::token::Token::KeyWord;
-use crate::lex::token::{OpKind};
 use crate::lex::token::{Token};
-use crate::lex::token::AtomKind::{Number, Idenitifer};
-use crate::lex::token::Token::{Atom, Op, EOF};
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lexer{
@@ -28,44 +24,44 @@ impl Lexer {
             self.start = self.current;
             self.scan_token()
         }
-        self.tokens.push(EOF);
+        self.tokens.push(Token::EOF);
     }
 
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '+' => self.tokens.push(Op(OpKind::PLUS)),
-            '-' => self.tokens.push(Op(OpKind::MINUS)),
-            '*' => self.tokens.push(Op(OpKind::MULTI)),
-            '/' => self.tokens.push(Op(OpKind::DIVIDE)),
+            '+' => self.tokens.push(Token::PLUS),
+            '-' => self.tokens.push(Token::MINUS),
+            '*' => self.tokens.push(Token::MULTI),
+            '/' => self.tokens.push(Token::DIVIDE),
             '=' => {
                 if matches!(self.peek(),'=') {
-                    self.tokens.push(Op(OpKind::EQUELEQUEL));
+                    self.tokens.push(Token::EQUELEQUEL);
                     self.current += 1
                 }
-                self.tokens.push(Op(OpKind::EQUEL))
+                self.tokens.push(Token::EQUEL)
             },
             '>' => {
                 if matches!(self.peek(),'=') {
-                    self.tokens.push(Op(OpKind::GREATEREUQEL));
+                    self.tokens.push(Token::GREATEREUQEL);
                     self.current += 1
                 }
-                self.tokens.push(Op(OpKind::GREATER))
+                self.tokens.push(Token::GREATER)
             },
             '<' => {
                 if matches!(self.peek(),'=') {
-                    self.tokens.push(Op(OpKind::LESSEREQUEL));
+                    self.tokens.push(Token::LESSEREQUEL);
                     self.current += 1
                 }
-                self.tokens.push(Op(OpKind::LESSER))
+                self.tokens.push(Token::LESSER)
             },
-            '(' => self.tokens.push(Op(OpKind::LEFTPAREN)),
-            ')' => self.tokens.push(Op(OpKind::RIGHTPAREN)),
-            '{' => self.tokens.push(Op(OpKind::LEFTBRACE)),
-            '}' => self.tokens.push(Op(OpKind::RIGHTBRACE)),
-            ';' => self.tokens.push(Op(OpKind::SEMICOLON)),
-            ',' => self.tokens.push(Op(OpKind::COMMA)),
-            '.' => self.tokens.push(Op(OpKind::DOT)),
+            '(' => self.tokens.push(Token::LEFTPAREN),
+            ')' => self.tokens.push(Token::RIGHTPAREN),
+            '{' => self.tokens.push(Token::LEFTBRACE),
+            '}' => self.tokens.push(Token::RIGHTBRACE),
+            ';' => self.tokens.push(Token::SEMICOLON),
+            ',' => self.tokens.push(Token::COMMA),
+            '.' => self.tokens.push(Token::DOT),
             'a'..='z' | 'A'..='Z' => self.identifier(),
             '0'..='9' => self.number(),
             ' ' | '\r' | '\t' | '\n' => {}
@@ -83,7 +79,7 @@ impl Lexer {
         let slice: String = self.input[self.start..self.current].iter().collect();
         let number = slice.parse::<f64>();
         match number {
-            Ok(val) => self.tokens.push(Atom(Number(val))),
+            Ok(val) => self.tokens.push(Token::Number(val)),
             Err(_) => panic!("Invalid Number")
         }
     }
@@ -100,21 +96,21 @@ impl Lexer {
 
         let slice: String = self.input[self.start..self.current].iter().collect();
         match slice.as_str() {
-            "let" => self.tokens.push(KeyWord(KeyWordKind::LET)),
-            "fun" => self.tokens.push(KeyWord(KeyWordKind::FUN)),
-            "for" => self.tokens.push(KeyWord(KeyWordKind::FOR)),
-            "while" => self.tokens.push(KeyWord(KeyWordKind::WHILE)),
-            "if" => self.tokens.push(KeyWord(KeyWordKind::IF)),
-            "else" => self.tokens.push(KeyWord(KeyWordKind::ELSE)),
-            "and" => self.tokens.push(KeyWord(KeyWordKind::AND)),
-            "or" => self.tokens.push(KeyWord(KeyWordKind::OR)),
-            "true" => self.tokens.push(KeyWord(KeyWordKind::TRUE)),
-            "false" => self.tokens.push(KeyWord(KeyWordKind::FALSE)),
-            "null" => self.tokens.push(KeyWord(KeyWordKind::NULL)),
-            "struct" => self.tokens.push(KeyWord(KeyWordKind::LET)),
-            "print" => self.tokens.push(KeyWord(KeyWordKind::PRINT)),
-            "return" => self.tokens.push(KeyWord(KeyWordKind::RETURN)),
-            _ => self.tokens.push(Atom(Idenitifer(slice)))
+            "let" => self.tokens.push(Token::LET),
+            "fun" => self.tokens.push(Token::FUN),
+            "for" => self.tokens.push(Token::FOR),
+            "while" => self.tokens.push(Token::WHILE),
+            "if" => self.tokens.push(Token::IF),
+            "else" => self.tokens.push(Token::ELSE),
+            "and" => self.tokens.push(Token::AND),
+            "or" => self.tokens.push(Token::OR),
+            "true" => self.tokens.push(Token::TRUE),
+            "false" => self.tokens.push(Token::FALSE),
+            "null" => self.tokens.push(Token::NULL),
+            "struct" => self.tokens.push(Token::STRUCT),
+            "print" => self.tokens.push(Token::PRINT),
+            "return" => self.tokens.push(Token::RETURN),
+            _ => self.tokens.push(Token::Idenitifer(slice))
         }
     }
 

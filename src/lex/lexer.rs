@@ -102,8 +102,9 @@ impl Lexer {
             "while" => self.tokens.push(Token::WHILE),
             "if" => self.tokens.push(Token::IF),
             "else" => self.tokens.push(Token::ELSE),
-            "and" => self.tokens.push(Token::AND),
-            "or" => self.tokens.push(Token::OR),
+	    "not" => self.tokens.push(Token::CMPNOT),
+            "and" => self.tokens.push(Token::CMPAND),
+            "or" => self.tokens.push(Token::CMPOR),
             "true" => self.tokens.push(Token::TRUE),
             "false" => self.tokens.push(Token::FALSE),
             "null" => self.tokens.push(Token::NULL),
@@ -130,7 +131,10 @@ impl Lexer {
     }
 
     pub fn print(&mut self) {
-        println!("{:?}", self.tokens);
+	for(i, token) in (&self.tokens).into_iter().enumerate(){
+	    println!("Token {}, {:?}", i, token);
+	}
+        
     }
     
 }
@@ -158,7 +162,7 @@ fn lexer_fun(){
 
 #[test]
 fn lexer_con(){
-    let input = "if a > 0 {} else {}";
+    let input = "if not(a > 0) and b < 0 {} else {}";
     let mut lexer = Lexer::new(&input);
     println!("{:?}", input);
     lexer.scan_tokens();

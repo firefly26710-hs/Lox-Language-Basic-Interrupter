@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use crate::lex::token::Token;
+use crate::lex::lexer::Lexer;
+use crate::lex::token::{Token};
 use crate::par::node::{Node, NodeKind};
 
 pub struct Parser{
@@ -17,16 +18,16 @@ impl Parser{
         }
     }
     pub fn parser_statment(&mut self)->usize{
-       let state = self.peek().expect("wtf dude");
+       let state = self.peek().expect("It's an empty tokens vec");
         match state{ 
-            Token::LET   => self.variable_statment(),
+            Token::LET   => self.let_statment(),
             Token::IF    => self.if_statment(),
 	    Token::ELSE  => self.else_statment(),
 	    Token::WHILE => self.while_statment(),
 	    Token::FOR   => self.for_statment(),
 	    Token::FUN   => self.function_statment(),
 	    
-            _ => panic!("are you crazzy")
+            _ => panic!("It's an illegal statment")
         };
 	self.nodes.len() - 1
     }
@@ -36,20 +37,26 @@ impl Parser{
         let number_token = self.advance().expect("Invalid lhs");
         let mut lhs_index: usize = match number_token {
             Token::Number(_) | Token::Identifier(_) => {
-                self.nodes.push(Node::leaf(number_token.clone()));
+                self.nodes.push(Node::Leaf(number_token.clone()));
                 self.nodes.len() - 1
             }
-            Token::MINUS =>{
+            Token::MINUS                 =>{
                 let rhs_index = self.parser_expression(1000.0);
-                self.nodes.push(Node::binary(Token::MINUS, None, Some(rhs_index)));
+                self.nodes.push(Node::Binary(Token::MINUS, None, Some(rhs_index)));
                 self.nodes.len() - 1
             }
+	    Token::CMPNOT =>{
+		let rhs_index = self.parser_expression(1000.0);
+		self.nodes.push(Node::Binary(Token::CMPNOT, None, Some(rhs_index)));
+		self.nodes.len() - 1
+	    }
             Token::LEFTPAREN => {
                 let lhs_index = self.parser_expression(0.0);
-                match self.advance().expect("ignote") {
-                    Token::RIGHTPAREN => lhs_index,
-                    _ => panic!("Expected)"),
-                }
+		match self.peek(){
+		    Some(Token::RIGHTPAREN) => self.advance(),
+		    _ => panic!("Not Include )")
+		};
+		lhs_index
             }
             _ => panic!("Expected atom"),
         };
@@ -60,48 +67,49 @@ impl Parser{
                |Token::RIGHTBRACE | Token::SEMICOLON => break,
 		
                 op_token => op_token.clone(),
-            };
+            };	    
             let (l_bp, r_bp) = infix_blind_power(op_token.clone());
             if l_bp < min_bp {
                 break;
             }
+	    self.advance();
             let rhs_index: usize = self.parser_expression(r_bp);
-            self.nodes.push(Node::binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
+            self.nodes.push(Node::Binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
             lhs_index = self.nodes.len() - 1;
         }
-
         lhs_index
+	
 
     }
 
     
-    fn variable_statment(&mut self) -> usize{
-	
-	let let_token = match self.peek().expect("a"){
-	    Token::LET => self.advance().expect("a"),
+    fn let_statment(&mut self) -> usize{
+
+	let let_token = match self.peek(){
+	    Some(Token::LET) => self.advance().unwrap(),
 	    _ => panic!("This is not let token")
 	};
 	
         let var_token = self.advance().expect("are you kidding me in var");
         let lhs_index = {
-            self.nodes.push(Node::leaf(var_token));
+            self.nodes.push(Node::Leaf(var_token));
             self.nodes.len() - 1
         };
 
-        if matches!(self.peek(), Some(Token::EQUEL)) {
-            self.advance().expect("are you kidding me in eq");
-        }else {
-            panic!("wtf, this is not the equel token");
-        }
+        match self.peek() {
+	    Some(Token::EQUEL) => self.advance().unwrap(),
+	    _ => panic!("Expected '=' at the middle of statement")
+	};
 
         let rhs_index = self.parser_expression(0.0);
+	
 	match self.peek() {
-            Some(Token::SEMICOLON) => { self.advance(); },
+            Some(Token::SEMICOLON) => self.advance().unwrap(),
             _ => panic!("Expected ';' at the end of statement"),
         };
 
 
-        self.nodes.push(Node::binary(let_token, Some(lhs_index), Some(rhs_index)));
+        self.nodes.push(Node::Binary(let_token, Some(lhs_index), Some(rhs_index)));
 	self.nodes.len() - 1
     }
     
@@ -109,26 +117,24 @@ impl Parser{
     // > >= < <= == != 
     // if x > 0 {let b = 2 }
     fn if_statment(&mut self) -> usize{
-	let if_token = match self.peek().expect("a"){
-	    Token::IF => self.advance().expect("a"),
-	    
-	    _ =>  panic!("wtf, this is not the if token")
+	let if_token = match self.peek(){
+	    Some(Token::IF) => self.advance().unwrap(),
+	    _ =>  panic!("Expected 'if' at the middle of statement")
 	};
 
-	
 	let condition_index = self.condition();
 	
-	match self.peek().expect("are you kidding me in left brace"){
-	    Token::LEFTBRACE => self.advance(),
-	    _ => panic!("wtf, this is not a left brace")
+	match self.peek(){
+	    Some(Token::LEFTBRACE) => self.advance().unwrap(),
+	    _ => panic!("Expected Left Brace at the middle of statement")
 	};
 	let inner_statment_index = self.parser_statment();
 	
-        match self.peek().expect("are you kidding me in left brace"){
-	    Token::RIGHTBRACE => self.advance(),
-	    _ => panic!("wtf, this is not a right brace")
+        match self.peek(){
+	    Some(Token::RIGHTBRACE) => self.advance().unwrap(),
+	   _ => panic!("Expected Right Brace at the middle of statement")
 	};
-	self.nodes.push(Node::binary(if_token, Some(condition_index), Some(inner_statment_index)));
+	self.nodes.push(Node::Binary(if_token, Some(condition_index), Some(inner_statment_index)));
 	self.nodes.len() - 1
     }
 
@@ -138,32 +144,37 @@ impl Parser{
     fn function_statment(&mut self)->usize{1}
     
     fn condition(&mut self) -> usize{
-	let lhs_token = self.advance().expect("are you kidding me in left var");
+	let lhs_token = match self.peek(){
+	    Some(Token::Identifier(_)) | Some(Token::Number(_)) => self.advance().unwrap(),
+	    _ => panic!("Expected Atom at the middle of statement")
+	};
+	
 	let lhs_index = {
-	    self.nodes.push(Node::leaf(lhs_token));
+	    self.nodes.push(Node::Leaf(lhs_token));
             self.nodes.len() - 1
 	};
-	let op_token = match self.peek().expect("wtf dude"){
-	         Token::GREATER         | Token::GREATEREUQEL
-		|Token::LESSER          | Token::LESSEREQUEL
-		|Token::EQUELEQUEL      | Token::NOTEQUEL
-		=> self.advance().expect("cool"),//pass
 
-	        _ => panic!("no this condiction operator")
+	let op_token = match self.peek(){
+	    Some(Token::GREATER)   |Some(Token::GREATEREUQEL)|
+	    Some(Token::LESSER)    |Some(Token::LESSEREQUEL)|
+	    Some(Token::EQUELEQUEL)|Some(Token::NOTEQUEL)
+		=> self.advance().unwrap(),//pass
+	    _   => panic!("no this condiction operator")
 	};
 
-        let rhs_token = self.advance().expect("are you kidding me in right var");
+	let rhs_token = match self.peek(){
+	    Some(Token::Identifier(_)) | Some(Token::Number(_)) => self.advance().unwrap(),
+	    _ => panic!("Expected Atom at the middle of statment")
+	};
+
 	let rhs_index = {
-	    self.nodes.push(Node::leaf(rhs_token));
+	    self.nodes.push(Node::Leaf(rhs_token));
 	    self.nodes.len() - 1
 	};
 	
-	self.nodes.push(Node::binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
+	self.nodes.push(Node::Binary(op_token.clone(), Some(lhs_index), Some(rhs_index)));
 	self.nodes.len() - 1
     }
-
-    
-
 
     
     fn advance(&mut self) -> Option<Token>{
@@ -177,8 +188,8 @@ impl Parser{
     }
 
     pub fn print(self){
-        for node in self.nodes{
-            println!("{:?}", node);
+        for (i, node) in self.nodes.into_iter().enumerate(){
+            println!("Node : {}, {:?}",i, node);
         }
     }
 
@@ -237,7 +248,6 @@ impl Parser{
                 }
             },
 	    &NodeKind::BranchTable { .. } => todo!()
-	    
         }
    }
 
@@ -248,10 +258,31 @@ impl Parser{
 
 fn infix_blind_power(op : Token) -> (f32, f32){
     match op{
-        Token::EQUEL                    => (0.1, 0.2),
-        Token::PLUS   | Token::MINUS    => (1.0, 1.1),
-        Token::MULTI  | Token::DIVIDE  => (2.0, 2.1),
+	Token::CMPAND | Token::CMPOR    => (0.1, 0.2),
+        Token::EQUELEQUEL               => (0.3, 0.4),
+	Token::GREATER| Token::LESSER   => (0.5, 0.5),
+        Token::PLUS   | Token::MINUS    => (1.0, 2.0),
+        Token::MULTI  | Token::DIVIDE   => (3.0, 4.0),
         _         => panic!("Unknown Operator{:?}", op)
     }
+}
+
+
+#[test]
+fn let_parser(){
+    let input = "
+    let x = not(-12 > 3) and not(5 < 9);
+    let z = 5;
+";
+    let mut lexer = Lexer::new(&input);
+    lexer.scan_tokens();
+    //dbg!(&lexer.tokens);
+    lexer.print();
+    let mut parser = Parser::new(lexer.tokens);
+    parser.parser_statment();
+    //dbg!(&parser.nodes);
+    parser.print();
+
+    
 }
 

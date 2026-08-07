@@ -9,10 +9,9 @@ pub enum NodeKind{
     },
     
     BranchTable{
-	table : Vec<u16>
+	table : Vec<(usize, usize)>
     }
-    
-
+   
 }
 
 
@@ -23,7 +22,7 @@ pub struct Node{
 }
 
 impl Node{
-    pub fn binary(new_token: Token, new_left: Option<usize>, new_right: Option<usize>) -> Self {
+    pub fn Binary(new_token: Token, new_left: Option<usize>, new_right: Option<usize>) -> Self {
         Self {
             kind: NodeKind::BinaryNode {
                 token: new_token,
@@ -35,7 +34,7 @@ impl Node{
         
     
 
-   pub fn leaf(new_token: Token) -> Self {
+   pub fn Leaf(new_token: Token) -> Self {
         Self {
             kind: NodeKind::BinaryNode {
                 token: new_token,
@@ -45,7 +44,7 @@ impl Node{
         }
     }
 
-   pub fn branch_table(table: Vec<u16>) -> Self {
+   pub fn BranchTable(table: Vec<(usize, usize)>) -> Self {
         Self {
             kind: NodeKind::BranchTable {
 		table
